@@ -1,0 +1,5 @@
+IoU: 0.04750489411666487
+Precision: 0.04878401710660756
+Recall: nan
+F1 Score: nan
+Specificity: 0.9312501688692277

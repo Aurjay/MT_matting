@@ -1,0 +1,6 @@
+kornia
+torch
+torchvision
+tqdm
+opencv-python
+onnxruntime
