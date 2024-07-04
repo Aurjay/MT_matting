@@ -7,11 +7,11 @@ import os
 model = torch.jit.load(r'model.pth').eval()
 
 # Load the background image
-background_path = r'C:\Users\dgn\Downloads\background.jpg'
+background_path = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Public\Public\WavingTrees_output\b00000.jpg'
 background = Image.open(background_path).convert('RGB')
 
 # Directory containing the source images
-source_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Private\Original_frames\PETS2001dataset1camera2'
+source_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Public\Public\WavingTrees_output'
 output_folder = r'C:\Users\dgn\Desktop\Matting_V2\Output'
 
 # Resize background image

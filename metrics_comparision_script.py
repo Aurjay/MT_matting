@@ -1,102 +1,35 @@
-import os
-import numpy as np
-from PIL import Image
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-import pandas as pd
+import cv2
 
-# Function to resize an image to the specified dimensions
-def resize_image(image, target_size=(380, 244)):
-    return image.resize(target_size)
+def resize_image(image, target_size):
+    return cv2.resize(image, target_size)
 
-# Paths to the folders containing images
-output_folder = r'I:\Werkstudenten\Deepak_Raj\Javed_Results\JavedSegmentationsForEvaluation\JavedSegmentationsForEvaluation_reduced_frames\SiemensGehen20mv2'
-ground_truth_folder = r'I:\Werkstudenten\Deepak_Raj\Javed_Results\JavedSegmentationsForEvaluation\GT\SiemensGehen20m'
+def read_and_threshold_image(image_path, target_size=(256, 256), threshold=127):
+    image = cv2.imread(image_path)
 
-# List all files in both folders
-output_files = [file for file in os.listdir(output_folder) if file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif'))]
-ground_truth_files = [file for file in os.listdir(ground_truth_folder) if file.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif'))]
+    if image is None:
+        raise FileNotFoundError(f"Image not found: {image_path}")
 
-# Initialize variables to store averages
-avg_accuracy = 0
-avg_precision = 0
-avg_recall = 0
-avg_f1 = 0
+    grayscale_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    resized_image = resize_image(grayscale_image, target_size)
+    _, binary_image = cv2.threshold(resized_image, threshold, 255, cv2.THRESH_BINARY)
 
-num_samples = 0
+    return image, grayscale_image, binary_image
 
-# Iterate through the images in the output folder
-for output_file in output_files:
-    # Extract the identifier from the filename
-    identifier = output_file.split('_')[0]  # Assuming the identifier comes before '_'
+def process_image(image_path):
+    pred_image, pred_grayscale, pred_thresholded = read_and_threshold_image(image_path)
 
-    # Search for the corresponding ground truth file
-    ground_truth_file = [file for file in ground_truth_files if identifier in file]
+    # Display images
+    cv2.imshow('Original Image', pred_image)
+    cv2.waitKey(0)
 
-    # Ensure there is exactly one corresponding ground truth file
+    cv2.imshow('Grayscale Image', pred_grayscale)
+    cv2.waitKey(0)
 
-    # Load the output and ground truth images
-    try:
-        output_image = Image.open(os.path.join(output_folder, output_file)).convert('L')
-        ground_truth_image = Image.open(os.path.join(ground_truth_folder, ground_truth_file[0])).convert('L')
+    cv2.imshow('Thresholded Image', pred_thresholded)
+    cv2.waitKey(0)
 
-        # Resize images to the same dimensions
-        output_image = resize_image(output_image)
-        ground_truth_image = resize_image(ground_truth_image)
+    cv2.destroyAllWindows()
 
-        # Convert images to numpy arrays
-        output_image_np = np.array(output_image)
-        ground_truth_image_np = np.array(ground_truth_image)
+image_path = r'i:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models_final\public\MattingV2\Walking-camera-shaking\output-img0032.jpg'
 
-        # Ensure both images have the same shape
-        assert output_image_np.shape == ground_truth_image_np.shape, "Images must have the same dimensions"
-
-        # Convert images to binary
-        output_binary = np.where(output_image_np > 127, 1, 0)
-        ground_truth_binary = np.where(ground_truth_image_np > 127, 1, 0)
-
-        # Flatten images to 1D arrays
-        output_flat = output_binary.flatten()
-        ground_truth_flat = ground_truth_binary.flatten()
-
-        # Calculate true positives, false positives, and false negatives
-        TP = np.sum(np.logical_and(output_flat == 1, ground_truth_flat == 1))
-        FP = np.sum(np.logical_and(output_flat == 1, ground_truth_flat == 0))
-        FN = np.sum(np.logical_and(output_flat == 0, ground_truth_flat == 1))
-
-        # Calculate accuracy
-        accuracy = accuracy_score(ground_truth_flat, output_flat)
-
-        # Calculate precision, recall, and F1 score
-        precision = precision_score(ground_truth_flat, output_flat, zero_division='warn')
-        recall = recall_score(ground_truth_flat, output_flat)
-        f1 = f1_score(ground_truth_flat, output_flat)
-
-        # Update averages
-        avg_accuracy += accuracy
-        avg_precision += precision
-        avg_recall += recall
-        avg_f1 += f1
-
-        num_samples += 1
-    except FileNotFoundError as e:
-        print(f"File not found: {e.filename}")
-    except AssertionError as e:
-        print(f"Assertion error: {e}")
-
-# Calculate averages
-avg_accuracy /= num_samples
-avg_precision /= num_samples
-avg_recall /= num_samples
-avg_f1 /= num_samples
-
-# Create DataFrame with averages
-results_df = pd.DataFrame({
-    'Metric': ['Accuracy', 'Precision', 'Recall', 'F1 Score'],
-    'Average': [avg_accuracy, avg_precision, avg_recall, avg_f1]
-})
-
-# Save the DataFrame to an Excel file
-excel_file_path = os.path.join(output_folder, 'javed_metrics_results.xlsx')
-results_df.to_excel(excel_file_path, index=False)
-
-print("Metrics averages saved to:", excel_file_path)
+process_image(image_path)

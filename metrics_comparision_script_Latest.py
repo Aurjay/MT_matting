@@ -28,7 +28,6 @@ def calculate_metrics(pred, gt):
         'Specificity': Specificity
     }
 
-
 def read_and_threshold_image(image_path, target_size=(256, 256), threshold=127):
     image = cv2.imread(image_path, cv2.IMREAD_GRAYSCALE)
 
@@ -41,12 +40,18 @@ def read_and_threshold_image(image_path, target_size=(256, 256), threshold=127):
 
 def process_folder(pred_folder, gt_folder):
     pred_files = sorted([file for file in os.listdir(pred_folder) if file.lower().endswith('.jpg')])
-    gt_files = sorted([file.replace('_gt', '').replace('.jpg', '.jpg') for file in os.listdir(gt_folder) if file.lower().endswith('.jpg')])
+    gt_files = sorted([file for file in os.listdir(gt_folder) if file.lower().endswith('.jpg')])
 
-    print("Prediction Files:")
-    print(pred_files)
-    print("Ground Truth Files:")
-    print(gt_files)
+    if len(pred_files) != len(gt_files):
+        raise ValueError("The number of images in the prediction and ground truth folders do not match.")
+
+    # Extract numbers from filenames
+    pred_numbers = [int(file.split('-img')[1].split('.')[0]) for file in pred_files]
+    gt_numbers = [int(file.split('-img')[1].split('_gt')[0]) for file in gt_files]
+
+    # Sort both lists to ensure corresponding files match
+    pred_files = [file for _, file in sorted(zip(pred_numbers, pred_files))]
+    gt_files = [file for _, file in sorted(zip(gt_numbers, gt_files))]
 
     total_metrics = {
         'IoU': 0,
@@ -57,32 +62,32 @@ def process_folder(pred_folder, gt_folder):
     }
     total_images = 0
 
-    for pred_file in pred_files:
-        if pred_file in gt_files:
-            gt_file = pred_file.replace('.jpg', '_gt.jpg')
+    for pred_file, gt_file in zip(pred_files, gt_files):
+        pred_path = os.path.join(pred_folder, pred_file)
+        gt_path = os.path.join(gt_folder, gt_file)
 
-            pred_path = os.path.join(pred_folder, pred_file)
-            gt_path = os.path.join(gt_folder, gt_file)
+        pred_image = read_and_threshold_image(pred_path)
+        gt_image = read_and_threshold_image(gt_path)
 
-            pred_image = read_and_threshold_image(pred_path)
-            gt_image = read_and_threshold_image(gt_path)
-
-            metrics = calculate_metrics(pred_image, gt_image)
-            
-            for key, value in metrics.items():
-                total_metrics[key] += value
-            
-            total_images += 1
+        metrics = calculate_metrics(pred_image, gt_image)
+        
+        for key, value in metrics.items():
+            total_metrics[key] += value
+        
+        total_images += 1
     
     average_metrics = {key: value / total_images for key, value in total_metrics.items()}
 
-    with open('average_results_deepftsg.txt', 'w') as file:
+    output_path = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models_final\public\MattingV2\metrics\WavingTrees_output.txt'
+    
+    with open(output_path, 'w') as file:
         for metric_name, value in average_metrics.items():
             file.write(f"{metric_name}: {value}\n")
 
     return average_metrics
 
-pred_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models\DeepFTSG\SiemensGehen20m\o'
-gt_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Private\GT\SiemensGehen20m'
+pred_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models_final\public\MattingV2\WavingTrees_output'
+gt_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Public\GT\WavingTrees_output'
 
 average_metrics = process_folder(pred_folder, gt_folder)
+print(average_metrics)

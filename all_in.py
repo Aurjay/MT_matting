@@ -10,8 +10,8 @@ import time
 model = torch.jit.load(r'model.pth').eval()
 
 # Directory containing the source images
-source_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Private\Original_frames\SiemensGehen20m'
-output_folder = r'C:\Users\dgn\Desktop\Matting_V2\Output'
+source_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Public\Public\cycle-noisy-bg'
+output_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models_final\public\MattingV2\cycle-noisy-bg'
 
 # Ensure the output directory exists
 os.makedirs(output_folder, exist_ok=True)
@@ -47,7 +47,7 @@ def calculate_background(images_folder, num_frames=10):
 background = calculate_background(source_folder, num_frames=100).convert('RGB')
 
 # Resize background image
-background = background.resize((380, 244))
+background = background.resize((240, 192))
 
 background.show()
 
@@ -63,19 +63,18 @@ for filename in os.listdir(source_folder):
         # Load source image and resize it
         source_path = os.path.join(source_folder, filename)
         source = Image.open(source_path).convert('RGB')
-        source = source.resize((380, 244))
+        source = source.resize((240, 192))
 
         # Convert images to tensors
         source_tensor = to_tensor(source).unsqueeze(0)
         background_tensor = to_tensor(background).unsqueeze(0)
 
+        # Calculate the total number of pixels in the image
+        total_pixels = source_tensor.size(2) * source_tensor.size(3)
+
         # Adjust model parameters based on image size
-        if source_tensor.size(2) <= 2048 and source_tensor.size(3) <= 2048:
-            model.backbone_scale = 1 / 4
-            model.refine_sample_pixels = 80_000
-        else:
-            model.backbone_scale = 1 / 8
-            model.refine_sample_pixels = 320_000
+        model.backbone_scale = 1 / 4
+        model.refine_sample_pixels = min(80_000, total_pixels // 16)
 
         # Process the images
         with torch.no_grad():
@@ -84,10 +83,10 @@ for filename in os.listdir(source_folder):
         # Threshold the alpha matte to obtain a binary mask
         binary_mask = (alpha_matte > 0.05).float()
 
-        # Save the output binary mask
+        # Save the output binary mask as JPG
         source_filename = os.path.splitext(filename)[0]
-        output_path = os.path.join(output_folder, f'{source_filename}_binary_mask.png')
-        to_pil_image(binary_mask[0].cpu()).save(output_path)
+        output_path = os.path.join(output_folder, f'{source_filename}.jpg')
+        to_pil_image(binary_mask[0].cpu()).save(output_path, format='JPEG', quality=95)
 
         # Print the path where the output binary mask is saved
         print(f'Output binary mask saved to: {output_path}')
@@ -99,5 +98,9 @@ for filename in os.listdir(source_folder):
 
 # Print the total time taken for all frames
 total_end_time = time.time()
+num_frames = len(source_folder) - 1
 total_time = total_end_time - total_start_time
+fps = num_frames / total_time
+print(f'Average FPS: {fps:.2f}')
+
 print(f'Total time taken for all frames: {total_time:.4f} seconds')
