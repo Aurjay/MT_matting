@@ -10,8 +10,8 @@ import time
 model = torch.jit.load(r'model.pth').eval()
 
 # Directory containing the source images
-source_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Public\Public\cycle-noisy-bg'
-output_folder = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models_final\public\MattingV2\cycle-noisy-bg'
+source_folder = 'Path for input folder'
+output_folder = 'Path for output folder'
 
 # Ensure the output directory exists
 os.makedirs(output_folder, exist_ok=True)
