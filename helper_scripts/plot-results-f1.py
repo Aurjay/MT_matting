@@ -14,6 +14,9 @@ algorithm_names = ['MattingV2', 'DeepFTSG', 'BSUVnet']
 f1_scores = {alg: [] for alg in algorithm_names}
 dataset_names = []
 
+# Define the datasets with ideal zero F1 scores
+zero_ideal_datasets = ['NoForegroundNight', 'Bulb-illumination']
+
 # Load and parse the data from the text files
 for alg, alg_dir in zip(algorithm_names, dirs):
     f1_scores_list = []
@@ -53,51 +56,31 @@ df = pd.DataFrame({
     'F1 Score': sum(f1_scores.values(), []),
 })
 
-# Ensure Dataset column is treated as categorical for correct axis ordering
-df['Dataset'] = pd.Categorical(df['Dataset'], categories=dataset_names, ordered=True)
+# Add ideal value notation for zero ideal datasets
+df['Dataset'] = df['Dataset'].apply(lambda x: f'{x} (Ideal: 0)' if x in zero_ideal_datasets else x)
 
-# Define colors, markers, line styles, line widths, and marker sizes for each algorithm
+# Ensure Dataset column is treated as categorical for correct axis ordering
+df['Dataset'] = pd.Categorical(df['Dataset'], categories=df['Dataset'].unique(), ordered=True)
+
+# Define colors for each algorithm with light shades
 color_map = {
-    'MattingV2': 'blue',
-    'DeepFTSG': 'green',
-    'BSUVnet': 'red'
-}
-marker_map = {
-    'MattingV2': 'circle',
-    'DeepFTSG': 'square',
-    'BSUVnet': 'diamond'
-}
-line_style_map = {
-    'MattingV2': 'solid',
-    'DeepFTSG': 'dot',
-    'BSUVnet': 'dash'
-}
-line_width_map = {
-    'MattingV2': 2,
-    'DeepFTSG': 2,
-    'BSUVnet': 2
-}
-marker_size_map = {
-    'MattingV2': 10,
-    'DeepFTSG': 10,
-    'BSUVnet': 10
+    'MattingV2': 'rgba(31, 119, 180, 0.6)',  # Light blue
+    'DeepFTSG': 'rgba(44, 160, 44, 0.6)',    # Light green
+    'BSUVnet': 'rgba(214, 39, 40, 0.6)'      # Light red
 }
 
 # Create traces for each algorithm
 traces = []
 for alg in algorithm_names:
     alg_df = df[df['Algorithm'] == alg]
-    trace = go.Scatter(
+    trace = go.Bar(
         x=alg_df['Dataset'],
         y=alg_df['F1 Score'],
-        mode='lines+markers+text',  # Include text annotations
         name=alg,
-        line=dict(color=color_map[alg], dash=line_style_map[alg], width=line_width_map[alg]),
-        marker=dict(symbol=marker_map[alg], size=marker_size_map[alg]),
+        marker=dict(color=color_map[alg]),
         text=[f'F1 Score: {score:.4f}' if pd.notna(score) else 'No Data' for score in alg_df['F1 Score']],
-        textposition='top center',  # Position text above markers
-        hoverinfo='none',  # Disable hover info (optional)
-        textfont=dict(size=14)  # Increase text font size
+        textposition='auto',  # Position text on the bars
+        hoverinfo='text'  # Display text on hover
     )
     traces.append(trace)
 
@@ -120,7 +103,8 @@ layout = go.Layout(
     showlegend=True,
     legend=dict(x=0, y=1.0, font=dict(size=16)),  # Legend font size
     margin=dict(l=80, r=80, t=80, b=80),
-    hovermode='closest'
+    hovermode='closest',
+    barmode='group'  # Group bars by dataset
 )
 
 # Create figure object and plot

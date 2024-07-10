@@ -9,10 +9,10 @@ def calculate_metrics(pred, gt):
     pred = pred.astype(bool)
     gt = gt.astype(bool)
 
-    TP = np.sum(np.logical_and(pred == 1, gt == 1))
-    FP = np.sum(np.logical_and(pred == 1, gt == 0))
-    TN = np.sum(np.logical_and(pred == 0, gt == 0))
-    FN = np.sum(np.logical_and(pred == 0, gt == 1))
+    TP = np.sum(np.logical_and(pred, gt))
+    FP = np.sum(np.logical_and(pred, np.logical_not(gt)))
+    TN = np.sum(np.logical_and(np.logical_not(pred), np.logical_not(gt)))
+    FN = np.sum(np.logical_and(np.logical_not(pred), gt))
 
     IoU = TP / float(TP + FP + FN) if (TP + FP + FN) != 0 else 0.0
     Precision = TP / float(TP + FP) if (TP + FP) != 0 else 0.0
@@ -71,14 +71,18 @@ def process_folder(pred_folder, gt_folder):
 
         metrics = calculate_metrics(pred_image, gt_image)
         
-        for key, value in metrics.items():
-            total_metrics[key] += value
-        
-        total_images += 1
+        # Only accumulate metrics if there is a non-zero value in F1 Score
+        if metrics['F1 Score'] > 0:
+            for key, value in metrics.items():
+                total_metrics[key] += value
+            total_images += 1
     
-    average_metrics = {key: value / total_images for key, value in total_metrics.items()}
+    if total_images > 0:
+        average_metrics = {key: value / total_images for key, value in total_metrics.items()}
+    else:
+        average_metrics = total_metrics  # To avoid division by zero if no frames had meaningful data
 
-    output_path = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models_final\public\MattingV2\metrics\WavingTrees_output.txt'
+    output_path = r'I:\Werkstudenten\Deepak_Raj\DATASETS\Results_all_models_final\public\MattingV2\metrics\NoForegroundNight.txt'
     
     with open(output_path, 'w') as file:
         for metric_name, value in average_metrics.items():
